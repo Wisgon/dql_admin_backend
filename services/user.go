@@ -1,4 +1,4 @@
-package service
+package services
 
 import (
 	"dql_admin_backend/config"

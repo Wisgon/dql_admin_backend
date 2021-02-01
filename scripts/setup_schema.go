@@ -3,7 +3,7 @@ package main
 
 import (
 	"context"
-	"dql_admin_backend/services"
+	"dql_admin_backend/model"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -16,7 +16,7 @@ func main() {
 		log.Println("read file error: " + err.Error())
 	}
 	fmt.Println(string(content))
-	err = services.SetupSchema(Ctx, string(content))
+	err = model.SetupSchema(Ctx, string(content))
 	if err != nil {
 		log.Println("setup error: " + err.Error())
 	} else {

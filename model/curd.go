@@ -4,7 +4,7 @@ import (
 	"context"
 	"log"
 
-	"github.com/dgraph-io/dgo/protos/api"
+	"github.com/dgraph-io/dgo/v200/protos/api"
 )
 
 func MutationSet(ctx context.Context, mutation string) (*api.Response, error) {

@@ -1,5 +1,13 @@
 package model
 
+import (
+	"context"
+	"dql_admin_backend/utils"
+	"errors"
+	"fmt"
+	"log"
+)
+
 type User struct {
 	ID          string
 	UserName    string `json:"username"`
@@ -12,6 +20,67 @@ type User struct {
 }
 
 func (u User) CreateUser() error {
+	var ctx = context.Background()
+	query := fmt.Sprintf(`
+	query{
+		q1(func: eq(user_name, "%s")) {
+			un as uid
+		}
+		q2(func: eq(phone_number, "%s")) {
+			ph as uid
+		}
+	}
+	`, u.UserName, u.PhoneNumber)
+
+	var mutationStrings []map[string]string
+	mutationString := make(map[string]string)
+
+	if u.Avatar == "" {
+		u.Avatar = "https://i.gtimg.cn/club/item/face/img/2/15922_100.gif"
+	}
+
+	// 设置cond
+	cond := "@if(eq(len(un), 0) AND eq(len(ph), 0))"
+	mutationString["cond"] = cond
+	// 组装mutation
+	mu := fmt.Sprintf(`
+	_:new_user <user_name> "%s" .
+	_:new_user <pwd> "%s" .
+	_:new_user <phone_number> "%s" .
+	_:new_user <avatar> "%s" .
+	_:new_user <dgraph.type> "User" .
+	`, u.UserName, u.Password, u.PhoneNumber, u.Avatar)
+	mutationString["mutation"] = mu
+
+	// fmt.Printf("mu: %+v\n\n", mutationString)
+
+	mutationStrings = append(mutationStrings, mutationString)
+
+	resp, err := MutationSetWithConditionUpsert(ctx, mutationStrings, query)
+	if err != nil {
+		log.Println("mutation with upsert error: " + err.Error())
+		return err
+	}
+	// fmt.Printf("resp: %+v /n", resp)
+	q1_count, err := utils.CountJsonArray(resp.Json, "q1")
+	if err != nil {
+		log.Println("parse resp json error: " + err.Error())
+		return err
+	}
+	q2_count, err := utils.CountJsonArray(resp.Json, "q2")
+	if err != nil {
+		log.Println("parse resp json error: " + err.Error())
+		return err
+	}
+
+	if q1_count > 0 {
+		return errors.New("用户名已被注册")
+	}
+
+	if q2_count > 0 {
+		return errors.New("手机已被注册")
+	}
+
 	return nil
 }
 
