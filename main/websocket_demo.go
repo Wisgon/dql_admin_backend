@@ -25,7 +25,7 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 		wsConn *websocket.Conn
 		err    error
 		conn   *utils.Connection
-		data   []byte
+		token  []byte
 	)
 	// 完成ws协议的握手操作
 	// Upgrade:websocket
@@ -51,12 +51,11 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	for {
-		if data, err = conn.ReadMessage(); err != nil {
+		if token, err = conn.ReadMessage(); err != nil {
 			goto ERR
 		}
-		if err = conn.WriteMessage(data); err != nil {
-			goto ERR
-		}
+		// 这里可根据token判断对方用户的身份
+		fmt.Println("token:", string(token))
 	}
 
 ERR:

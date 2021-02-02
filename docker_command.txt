@@ -1,0 +1,2 @@
+docker network create my_net
+docker run -dit --network hdl_dql --network-alias dgl_admin -p 127.0.0.1:8080:8080 -p 127.0.0.1:9080:9080 -p 127.0.0.1:8000:8000 --name hdl_admin dgraph/standalone:latest
