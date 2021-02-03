@@ -4,7 +4,6 @@ import (
 	"dql_admin_backend/config"
 	"dql_admin_backend/middleware"
 	"dql_admin_backend/model"
-	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -24,7 +23,7 @@ func RegistUser(c *gin.Context) {
 		// fmt.Println(formData.PhoneCode)
 		// fmt.Printf("struct: %+v \n\n", formData)
 		newUser := formData.User
-		fmt.Printf("User:%+v \n", newUser)
+		// fmt.Printf("User:%+v \n", newUser)
 		err := newUser.CreateUser()
 		if err != nil {
 			switch err.Error() {
