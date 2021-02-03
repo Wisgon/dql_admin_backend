@@ -14,7 +14,8 @@ func main() {
 			log.Println("server 异常关闭： " + errMessage.(string))
 		}
 	}()
-	utils.UseRotateLog(config.Root + "logs")
+	utils.UseRotateLog(config.Root + "/logs")
+	log.Println("starting server~~~")
 	r := route.Router
 	route.Users()
 	r.Run(":8063")

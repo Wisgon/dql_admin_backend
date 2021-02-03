@@ -4,6 +4,7 @@ import (
 	"dql_admin_backend/config"
 	"dql_admin_backend/middleware"
 	"dql_admin_backend/model"
+	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -14,7 +15,7 @@ import (
 
 type RegistForm struct {
 	model.User
-	PhoneCode string `form:"phoneCode"`
+	PhoneCode string `form:"phoneCode"` // 验证码
 }
 
 func RegistUser(c *gin.Context) {
@@ -23,6 +24,7 @@ func RegistUser(c *gin.Context) {
 		// fmt.Println(formData.PhoneCode)
 		// fmt.Printf("struct: %+v \n\n", formData)
 		newUser := formData.User
+		fmt.Printf("User:%+v \n", newUser)
 		err := newUser.CreateUser()
 		if err != nil {
 			switch err.Error() {

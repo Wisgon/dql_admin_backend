@@ -1,9 +1,9 @@
-# Define Types
+# =============Define Types
 type User {
   user_name
   pwd
   phone_number
-  email
+  avatar
   role
 }
 
@@ -12,12 +12,14 @@ type Role {
 }
 
 
-# Define Directives and index
+# =============Define Predicates
+# User
 user_name: string @index(hash) @upsert .
 pwd: password .
 phone_number: string @index(hash) @upsert .
-email: string @index(hash) @upsert .
-
-
-name: string @index(hash) .
+avatar: string .
 role: [uid] @reverse .
+
+# Role
+name: string @index(hash) .
+

@@ -6,16 +6,15 @@ import (
 	"errors"
 	"fmt"
 	"log"
+
+	"github.com/buger/jsonparser"
 )
 
 type User struct {
 	ID          string
 	UserName    string `json:"username"`
 	Password    string `json:"password"`
-	Port        int
 	PhoneNumber string `json:"phone"`
-	Email       string
-	MemberSN    string //会员编号
 	Avatar      string //头像图片地址
 }
 
@@ -64,12 +63,12 @@ func (u User) CreateUser() error {
 	// fmt.Printf("resp: %+v /n", resp)
 	q1_count, err := utils.CountJsonArray(resp.Json, "q1")
 	if err != nil {
-		log.Println("parse resp json error: " + err.Error())
+		log.Println("parse resp q1 json error: " + err.Error())
 		return err
 	}
 	q2_count, err := utils.CountJsonArray(resp.Json, "q2")
 	if err != nil {
-		log.Println("parse resp json error: " + err.Error())
+		log.Println("parse resp q2 json error: " + err.Error())
 		return err
 	}
 
@@ -84,46 +83,98 @@ func (u User) CreateUser() error {
 	return nil
 }
 
-func (u User) UpgradeMember() error {
-	// todo: 升级会员，需要哈希一个会员编号和分配一个port，分配port是难点，用conditional upsert
-	return nil
-}
-
 func (u *User) GetUserInfo(condition string) error {
+	var query string
+	switch condition {
+	case "id":
+		query = fmt.Sprintf(`{
+			userInfo(func: uid(%s)) {
+				user_name
+				phone_number
+				avatar
+			}
+		}`, u.ID)
+	case "user_name":
+		query = fmt.Sprintf(`{
+			userInfo(func: eq(user_name, "%s")) {
+				user_name
+				phone_number
+				avatar
+			}
+		}`, u.UserName)
+	case "phone_number":
+		query = fmt.Sprintf(`{
+			userInfo(func: eq(phone_number, "%s")) {
+				user_name
+				phone_number
+				avatar
+			}
+		}`, u.PhoneNumber)
+	default:
+		err := errors.New("no such user attr: " + condition)
+		return err
+	}
+
+	resp, err := Query(context.Background(), query)
+	if err != nil {
+		log.Println("query userinfo error: " + err.Error())
+		return err
+	}
+	// fmt.Println("resp:", resp)
+
+	_, err = jsonparser.ArrayEach(resp.Json, func(value []byte, dataType jsonparser.ValueType, offset int, err error) {
+		username, newErr := jsonparser.GetString(value, "user_name")
+		if newErr != nil {
+			log.Println("get username error: " + newErr.Error())
+		}
+		phoneNumber, newErr := jsonparser.GetString(value, "phone_number")
+		if newErr != nil {
+			log.Println("get phone_number error: " + newErr.Error())
+		}
+		avatar, newErr := jsonparser.GetString(value, "avatar")
+		if newErr != nil {
+			log.Println("get avatar error: " + newErr.Error())
+		}
+		u.UserName, u.Avatar, u.PhoneNumber = username, avatar, phoneNumber
+	}, "userInfo")
+	if err != nil {
+		log.Println("array each error: " + err.Error())
+		return err
+	}
 	return nil
 }
 
 func (u *User) VerifyPwd() (result bool, err error) {
-	// query := fmt.Sprintf(`{
-	// 	verify(func: eq(user_name, "%s")) {
-	// 		uid
-	// 		checkpwd(pwd, "%s")
-	// 	}
-	// }
-	// `, u.UserName, u.Password)
-	// resp, err := service.Query(context.Background(), query)
-	// if err != nil {
-	// 	log.Println("query error: " + err.Error())
-	// 	return false, err
-	// }
-	// //fmt.Printf("resp: %+v\n", resp)
+	query := fmt.Sprintf(`{
+		verify(func: eq(user_name, "%s")) {
+			uid
+			checkpwd(pwd, "%s")
+		}
+	}
+	`, u.UserName, u.Password)
+	resp, err := Query(context.Background(), query)
+	if err != nil {
+		log.Println("query error: " + err.Error())
+		return false, err
+	}
+	//fmt.Printf("resp: %+v\n", resp)
 
-	// _, err = jsonparser.ArrayEach(resp.Json, func(value []byte, dataType jsonparser.ValueType, offset int, err error) {
-	// 	theResult, newErr := jsonparser.GetBoolean(value, "checkpwd(pwd)")
-	// 	if newErr != nil {
-	// 		log.Println("get checkpwd error: " + newErr.Error())
-	// 	}
-	// 	uid, newErr := jsonparser.GetString(value, "uid")
-	// 	if newErr != nil {
-	// 		log.Println("get uid error: " + newErr.Error())
-	// 	}
-	// 	result = theResult
-	// 	u.ID = uid
-	// }, "verify")
-	// if err != nil {
-	// 	log.Println("get result error: " + err.Error())
-	// 	return false, err
-	// }
-	// // fmt.Println("result: ", result)
+	_, err = jsonparser.ArrayEach(resp.Json, func(value []byte, dataType jsonparser.ValueType, offset int, err error) {
+		theResult, newErr := jsonparser.GetBoolean(value, "checkpwd(pwd)")
+		if newErr != nil {
+			log.Println("get checkpwd error: " + newErr.Error())
+		}
+		uid, newErr := jsonparser.GetString(value, "uid")
+		if newErr != nil {
+			log.Println("get uid error: " + newErr.Error())
+		}
+		result = theResult
+		u.ID = uid
+	}, "verify")
+	if err != nil {
+		log.Println("get result error: " + err.Error())
+		return false, err
+	}
+	// fmt.Println("result: ", result)
 	return
 }
