@@ -105,10 +105,13 @@ func tokenNext(c *gin.Context, user model.User) {
 		})
 		return
 	}
+	data := map[string]string{
+		"accessToken": token,
+	}
 	c.JSON(http.StatusOK, gin.H{
 		"code":    0,
 		"message": "login success!",
-		"token":   token,
+		"data":    data,
 	})
 }
 
