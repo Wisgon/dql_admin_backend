@@ -92,7 +92,7 @@ func tokenNext(c *gin.Context, user model.User) {
 		roleString += role.RoleID + "#" // 每个role用#号分隔
 	}
 	claims := middleware.CustomClaims{
-		ID:    user.ID,
+		ID:    user.UID,
 		Roles: roleString,
 		StandardClaims: jwt.StandardClaims{
 			NotBefore: time.Now().Unix() - 1000,       // 签名生效时间
@@ -125,7 +125,7 @@ func tokenNext(c *gin.Context, user model.User) {
 func GetUserInfo(c *gin.Context) {
 	claims := c.MustGet("claims").(*middleware.CustomClaims) // 获取token解析出来的用户信息
 	user := model.User{
-		ID: claims.ID,
+		UID: claims.ID,
 	}
 	err := user.GetUserInfo("id")
 	if err != nil {

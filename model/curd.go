@@ -144,5 +144,6 @@ func MutationDelete(ctx context.Context, mutationString string) (resp *api.Respo
 func Query(ctx context.Context, query string) (resp *api.Response, err error) {
 	txn := client.NewReadOnlyTxn().BestEffort()
 	resp, err = txn.Query(context.Background(), query)
+	//fmt.Println("resp:", resp)
 	return
 }

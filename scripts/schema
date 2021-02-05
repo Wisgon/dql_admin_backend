@@ -1,12 +1,12 @@
 # =============Define Types
 type User {
-  user_name
-  pwd
-  phone_number
+  username
+  password
+  phone
   avatar
   create_time
   update_time
-  role
+  roles
 }
 
 type Role {
@@ -17,13 +17,34 @@ type Role {
 
 # =============Define Predicates
 
-user_name: string @index(hash) @upsert .
-pwd: string .
-phone_number: string @index(hash) @upsert .
+username: string @index(hash) @upsert .
+password: string .
+phone: string @index(hash) @upsert .
 avatar: string .
-role: [uid] @reverse .
+roles: [uid] @reverse .
 
 name: string @index(hash) .
 role_id: string @index(hash) @upsert .
 create_time: datetime @index(day) .
 update_time: datetime @index(day) .
+
+
+#======初始化步骤=========================
+# 首先，增加角色，然后查询普通用户的id写入config的相应全局变量
+# 在UI的Mutate输入：
+#{
+#	set{
+#    _:r <role_id> "admin" .
+#    _:r <name> "超级管理员" .
+#    _:r2 <role_id> "editor" .
+#    _:r2 <name> "普通用户" .
+#  }
+#}
+
+#在注册界面注册新用户后，要设置用户为超级管理员
+#先要查询admin的id和admin角色的id，然后
+#{
+# set {
+#  <admin的id> <roles> <admin角色的id> .
+#}
+#}
