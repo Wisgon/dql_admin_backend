@@ -4,6 +4,8 @@ type User {
   pwd
   phone_number
   avatar
+  create_time
+  update_time
   role
 }
 
@@ -16,11 +18,12 @@ type Role {
 # =============Define Predicates
 
 user_name: string @index(hash) @upsert .
-pwd: password .
+pwd: string .
 phone_number: string @index(hash) @upsert .
 avatar: string .
 role: [uid] @reverse .
 
 name: string @index(hash) .
 role_id: string @index(hash) @upsert .
-
+create_time: datetime @index(day) .
+update_time: datetime @index(day) .

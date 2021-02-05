@@ -2,6 +2,7 @@ package model
 
 import (
 	"context"
+	"dql_admin_backend/config"
 	"dql_admin_backend/utils"
 	"errors"
 	"fmt"
@@ -47,6 +48,7 @@ func (u User) CreateUser() error {
 	// 设置cond
 	cond := "@if(eq(len(un), 0) AND eq(len(ph), 0))"
 	mutationString["cond"] = cond
+	nowTime := utils.ChangeTimeFormat("normal2dql", utils.GetTimeString("date_and_time"))
 	// 组装mutation
 	mu := fmt.Sprintf(`
 	_:new_user <user_name> "%s" .
@@ -54,7 +56,10 @@ func (u User) CreateUser() error {
 	_:new_user <phone_number> "%s" .
 	_:new_user <avatar> "%s" .
 	_:new_user <dgraph.type> "User" .
-	`, u.UserName, u.Password, u.PhoneNumber, u.Avatar)
+	_:new_user <create_time> "%s" .
+	_:new_user <role> <%s> .
+	`, u.UserName, u.Password, u.PhoneNumber, u.Avatar, nowTime, config.NormalRoleId)
+	// 上面的config.NormalRoleId，是当前的普通role的再数据库的id，如果重新建库可能会有不同，要去config.NormalRoleId修改
 	mutationString["mutation"] = mu
 
 	// fmt.Printf("mu: %+v\n\n", mutationString)
@@ -185,28 +190,59 @@ func (u *User) VerifyPwd() (result bool, err error) {
 	query := fmt.Sprintf(`{
 		verify(func: eq(user_name, "%s")) {
 			uid
-			checkpwd(pwd, "%s")
+			pwd
+			role {
+				role_id
+			}
 		}
 	}
-	`, u.UserName, u.Password)
+	`, u.UserName)
 	resp, err := Query(context.Background(), query)
 	if err != nil {
 		log.Println("query error: " + err.Error())
 		return false, err
 	}
-	//fmt.Printf("resp: %+v\n", resp)
+	// fmt.Printf("resp: %+v\n", resp)
 
 	_, err = jsonparser.ArrayEach(resp.Json, func(value []byte, dataType jsonparser.ValueType, offset int, err error) {
-		theResult, newErr := jsonparser.GetBoolean(value, "checkpwd(pwd)")
+		// theResult, newErr := jsonparser.GetBoolean(value, "checkpwd(pwd)")
+		// if newErr != nil {
+		// 	log.Println("get checkpwd error: " + newErr.Error())
+		// }
+		var theResult bool
+		pwd, newErr := jsonparser.GetString(value, "pwd")
 		if newErr != nil {
-			log.Println("get checkpwd error: " + newErr.Error())
+			log.Println("get pwd error: " + newErr.Error())
 		}
+		md5Pwd := utils.GetMd5(pwd)
+		if u.Password == md5Pwd {
+			theResult = true
+		} else {
+			theResult = false
+		}
+
 		uid, newErr := jsonparser.GetString(value, "uid")
 		if newErr != nil {
 			log.Println("get uid error: " + newErr.Error())
 		}
+
+		_, insideErr := jsonparser.ArrayEach(value, func(childValue []byte, dataType jsonparser.ValueType, offset int, err error) {
+			roleId, newErr := jsonparser.GetString(childValue, "role_id")
+			if newErr != nil {
+				log.Println("get role id error:" + newErr.Error())
+			}
+			role := Role{
+				RoleID:   roleId,
+			}
+			u.Roles = append(u.Roles, role)
+		}, "role")
+		if insideErr != nil {
+			log.Println("verify pwd parse role error:", insideErr.Error())
+		}
+
 		result = theResult
 		u.ID = uid
+
 	}, "verify")
 	if err != nil {
 		log.Println("get result error: " + err.Error())

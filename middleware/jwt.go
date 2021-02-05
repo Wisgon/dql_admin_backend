@@ -48,8 +48,8 @@ func JWTAuth() gin.HandlerFunc {
 }
 
 type CustomClaims struct {
-	ID       string
-	UserName string
+	ID    string
+	Roles string
 	jwt.StandardClaims
 }
 

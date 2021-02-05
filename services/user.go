@@ -4,6 +4,8 @@ import (
 	"dql_admin_backend/config"
 	"dql_admin_backend/middleware"
 	"dql_admin_backend/model"
+	"dql_admin_backend/utils"
+	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -20,10 +22,7 @@ type RegistForm struct {
 func RegistUser(c *gin.Context) {
 	var formData RegistForm
 	if c.ShouldBind(&formData) == nil {
-		// fmt.Println(formData.PhoneCode)
-		// fmt.Printf("struct: %+v \n\n", formData)
 		newUser := formData.User
-		// fmt.Printf("User:%+v \n", newUser)
 		err := newUser.CreateUser()
 		if err != nil {
 			switch err.Error() {
@@ -88,9 +87,13 @@ func tokenNext(c *gin.Context, user model.User) {
 	j := &middleware.JWT{
 		SigningKey: []byte(config.JwtSignString), // 唯一签名
 	}
+	roleString := ""
+	for _, role := range user.Roles {
+		roleString += role.RoleID + "#" // 每个role用#号分隔
+	}
 	claims := middleware.CustomClaims{
-		ID:       user.ID,
-		UserName: user.UserName,
+		ID:    user.ID,
+		Roles: roleString,
 		StandardClaims: jwt.StandardClaims{
 			NotBefore: time.Now().Unix() - 1000,       // 签名生效时间
 			ExpiresAt: time.Now().Unix() + 60*60*24*7, // 过期时间 一周
@@ -132,7 +135,6 @@ func GetUserInfo(c *gin.Context) {
 		})
 		return
 	}
-	// todo: permissions暂时写死
 	permissions := []string{}
 	for _, role := range user.Roles {
 		permissions = append(permissions, role.RoleID)
@@ -153,4 +155,13 @@ func Logout(c *gin.Context) {
 		"code":    200,
 		"message": "success",
 	})
+}
+
+func GetUserList(c *gin.Context) {
+	judgeAthRes := utils.JudgeAuthority(c, "admin")
+	if !judgeAthRes {
+		return
+	}
+	fmt.Println("auth pass")
+	// todo: get user list
 }
