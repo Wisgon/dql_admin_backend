@@ -15,7 +15,13 @@ type User struct {
 	UserName    string `json:"username"`
 	Password    string `json:"password"`
 	PhoneNumber string `json:"phone"`
-	Avatar      string //头像图片地址
+	Avatar      string `json:"avatar"` //头像图片地址
+	Roles       []Role `json:"roles"`
+}
+
+type Role struct {
+	RoleID   string `json:"role_id"`
+	RoleName string `json:"role_name"`
 }
 
 func (u User) CreateUser() error {
@@ -92,6 +98,10 @@ func (u *User) GetUserInfo(condition string) error {
 				user_name
 				phone_number
 				avatar
+				role{
+					role_id
+					name
+				}
 			}
 		}`, u.ID)
 	case "user_name":
@@ -100,6 +110,10 @@ func (u *User) GetUserInfo(condition string) error {
 				user_name
 				phone_number
 				avatar
+				role{
+					role_id
+					name
+				}
 			}
 		}`, u.UserName)
 	case "phone_number":
@@ -108,6 +122,10 @@ func (u *User) GetUserInfo(condition string) error {
 				user_name
 				phone_number
 				avatar
+				role{
+					role_id
+					name
+				}
 			}
 		}`, u.PhoneNumber)
 	default:
@@ -136,7 +154,26 @@ func (u *User) GetUserInfo(condition string) error {
 			log.Println("get avatar error: " + newErr.Error())
 		}
 		u.UserName, u.Avatar, u.PhoneNumber = username, avatar, phoneNumber
+		_, insideErr := jsonparser.ArrayEach(value, func(childValue []byte, dataType jsonparser.ValueType, offset int, err error) {
+			roleId, newErr := jsonparser.GetString(childValue, "role_id")
+			if newErr != nil {
+				log.Println("get role id error:" + newErr.Error())
+			}
+			roleName, newErr := jsonparser.GetString(childValue, "name")
+			if newErr != nil {
+				log.Println("get role name error:" + newErr.Error())
+			}
+			role := Role{
+				RoleID:   roleId,
+				RoleName: roleName,
+			}
+			u.Roles = append(u.Roles, role)
+		}, "role")
+		if insideErr != nil {
+			log.Println("parse role error:", insideErr.Error())
+		}
 	}, "userInfo")
+
 	if err != nil {
 		log.Println("array each error: " + err.Error())
 		return err

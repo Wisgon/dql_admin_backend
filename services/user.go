@@ -105,13 +105,12 @@ func tokenNext(c *gin.Context, user model.User) {
 		})
 		return
 	}
-	data := map[string]string{
-		"accessToken": token,
-	}
 	c.JSON(http.StatusOK, gin.H{
 		"code":    0,
 		"message": "login success!",
-		"data":    data,
+		"data": gin.H{
+			"accessToken": token,
+		},
 	})
 }
 
@@ -134,7 +133,10 @@ func GetUserInfo(c *gin.Context) {
 		return
 	}
 	// todo: permissions暂时写死
-	permissions := []string{"admin", "editor"}
+	permissions := []string{}
+	for _, role := range user.Roles {
+		permissions = append(permissions, role.RoleID)
+	}
 	c.JSON(http.StatusOK, gin.H{
 		"code":    0,
 		"message": "get user info ok!",

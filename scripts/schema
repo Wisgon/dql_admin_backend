@@ -8,18 +8,19 @@ type User {
 }
 
 type Role {
+  role_id
   name
 }
 
 
 # =============Define Predicates
-# User
+
 user_name: string @index(hash) @upsert .
 pwd: password .
 phone_number: string @index(hash) @upsert .
 avatar: string .
 role: [uid] @reverse .
 
-# Role
 name: string @index(hash) .
+role_id: string @index(hash) @upsert .
 
