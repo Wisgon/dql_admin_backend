@@ -201,7 +201,7 @@ func (u *User) VerifyPwd() (result bool, err error) {
 		log.Println("query error: " + err.Error())
 		return false, err
 	}
-	//fmt.Printf("resp: %+v\n", resp)
+	// fmt.Printf("resp: %+v\n", resp)
 	users := UsersStru{}
 	err = json.Unmarshal(resp.Json, &users)
 	if err != nil {

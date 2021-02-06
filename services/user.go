@@ -29,19 +29,19 @@ func RegistUser(c *gin.Context) {
 			case "手机已被注册":
 				c.JSON(http.StatusOK, gin.H{
 					"message": "手机已被注册",
-					"code":    2,
+					"code":    config.STATUS["InvalidParam"],
 				})
 				return
 			case "用户名已被注册":
 				c.JSON(http.StatusOK, gin.H{
 					"message": "用户名已被注册",
-					"code":    3,
+					"code":    config.STATUS["InvalidParam"],
 				})
 				return
 			default:
 				c.JSON(http.StatusInternalServerError, gin.H{
-					"message": "注册失败",
-					"code":    -1,
+					"message": "InternalError, see logs",
+					"code":    config.STATUS["InternalError"],
 				})
 				return
 			}
@@ -50,13 +50,13 @@ func RegistUser(c *gin.Context) {
 		log.Println("bind fail!!!")
 		c.JSON(http.StatusOK, gin.H{
 			"message": "注册失败",
-			"code":    1,
+			"code":    config.STATUS["InvalidParam"],
 		})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{
 		"message": "注册成功",
-		"code":    0,
+		"code":    config.STATUS["OK"],
 	})
 }
 
@@ -68,13 +68,13 @@ func Login(c *gin.Context) {
 		log.Println("verifypwd error: " + err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"message": err.Error(),
-			"code":    -1,
+			"code":    config.STATUS["InternalError"],
 		})
 	}
 	if !result {
 		c.JSON(http.StatusOK, gin.H{
 			"message": "用户名或密码错误",
-			"code":    1,
+			"code":    config.STATUS["InvalidParam"],
 		})
 		return
 	}
@@ -103,13 +103,13 @@ func tokenNext(c *gin.Context, user model.User) {
 	token, err := j.CreateToken(claims)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{
-			"code":    1,
+			"code":    config.STATUS["NotFound"],
 			"message": "获取token失败",
 		})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{
-		"code":    0,
+		"code":    config.STATUS["OK"],
 		"message": "login success!",
 		"data": gin.H{
 			"accessToken": token,
@@ -130,7 +130,7 @@ func GetUserInfo(c *gin.Context) {
 	err := user.GetUserInfo("id")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"code":    1,
+			"code":    config.STATUS["InternalError"],
 			"message": "get user info error",
 		})
 		return
@@ -140,7 +140,7 @@ func GetUserInfo(c *gin.Context) {
 		permissions = append(permissions, role.RoleID)
 	}
 	c.JSON(http.StatusOK, gin.H{
-		"code":    0,
+		"code":    config.STATUS["OK"],
 		"message": "get user info ok!",
 		"data": gin.H{
 			"avatar":      user.Avatar,
@@ -160,6 +160,10 @@ func Logout(c *gin.Context) {
 func GetUserList(c *gin.Context) {
 	judgeAthRes := utils.JudgeAuthority(c, "admin")
 	if !judgeAthRes {
+		c.JSON(http.StatusForbidden, gin.H{
+			"code": config.STATUS["AuthForbidden"],
+			"message": 
+		})
 		return
 	}
 	fmt.Println("auth pass")
