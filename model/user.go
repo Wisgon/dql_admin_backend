@@ -8,6 +8,8 @@ import (
 	"errors"
 	"fmt"
 	"log"
+
+	"github.com/buger/jsonparser"
 )
 
 // ==============below is some method of struct User
@@ -293,6 +295,46 @@ func GetUserList(pageSize int, pageNo int) (users UsersStru, err error) {
 		users.Users[i].UpdateTime = utils.ChangeTimeFormat("dql2normal", users.Users[i].UpdateTime)
 	}
 	return
+}
+
+func UpdateUser(updateData []byte) error {
+	var ctx = context.Background()
+	mutationSet := ""
+	uid, err := jsonparser.GetString(updateData, "uid")
+	if err != nil {
+		log.Println("update user get uid error:" + err.Error())
+		return err
+	}
+	err = jsonparser.ObjectEach(updateData, func(key, value []byte, dataType jsonparser.ValueType, offset int) error {
+		switch string(key) {
+		case "username":
+			mutationSet += "<" + uid + "> <username> \"" + string(value) + "\" .\n"
+		case "password":
+			mutationSet += "<" + uid + "> <password> \"" + string(value) + "\" .\n"
+		}
+		return nil
+	})
+	if err != nil {
+		log.Println("update user parse json error:" + err.Error())
+		return err
+	}
+	nowTime := utils.ChangeTimeFormat("normal2dql", utils.GetTimeString("date_and_time"))
+	mutationSet += "<" + uid + "> <update_time> \"" + nowTime + "\" .\n"
+	fmt.Println("mutation:", mutationSet)
+	resp, err := MutationSet(ctx, mutationSet)
+	if err != nil {
+		log.Println("update user mutation set error:" + err.Error())
+		return err
+	}
+	// fmt.Println("resp:", len(resp.Json)) // if success len(resp.Json) is 0
+	if len(resp.Json) != 0 {
+		err = errors.New("some error happen")
+		log.Println("some error happen, len(resp.Json) is not 0, resp.Json:" + string(resp.Json))
+		return err
+	}
+
+	// todo: permissions mutation
+	return nil
 }
 
 // ===========below is some useful function

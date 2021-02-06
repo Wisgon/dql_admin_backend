@@ -26,7 +26,7 @@ type Pagination struct {
 func RegistUser(c *gin.Context) {
 	var formData RegistForm
 	if err := c.ShouldBind(&formData); err != nil {
-		log.Println("regist bind fail!!!")
+		log.Println("regist bind fail!!!" + err.Error())
 		c.JSON(http.StatusOK, gin.H{
 			"message": "注册失败",
 			"code":    config.STATUS["InvalidParam"],
@@ -67,7 +67,7 @@ func RegistUser(c *gin.Context) {
 func Login(c *gin.Context) {
 	var user model.User
 	if err := c.ShouldBind(&user); err != nil {
-		log.Println("login bind fail!!!")
+		log.Println("login bind fail!!!" + err.Error())
 		c.JSON(http.StatusOK, gin.H{
 			"message": "数据错误",
 			"code":    config.STATUS["InvalidParam"],
@@ -179,15 +179,15 @@ func Logout(c *gin.Context) {
 func GetUserList(c *gin.Context) {
 	var pagination Pagination
 	if err := c.ShouldBind(&pagination); err != nil {
-		log.Println("get User list bind fail!!!")
+		log.Println("get User list bind fail!!!" + err.Error())
 		c.JSON(http.StatusOK, gin.H{
 			"message": "数据错误",
 			"code":    config.STATUS["InvalidParam"],
 		})
 		return
 	} else {
-		judgeAthRes := utils.JudgeAuthority(c, "admin")
-		if !judgeAthRes {
+		isAdmin := utils.JudgeAuthority(c, "admin")
+		if !isAdmin {
 			c.JSON(http.StatusForbidden, gin.H{
 				"code":    config.STATUS["AuthForbidden"],
 				"message": "only admin can use it.",
@@ -212,4 +212,38 @@ func GetUserList(c *gin.Context) {
 		})
 	}
 
+}
+
+func UpdateUser(c *gin.Context) {
+	isAdmin := utils.JudgeAuthority(c, "admin")
+	if !isAdmin {
+		c.JSON(http.StatusForbidden, gin.H{
+			"code":    config.STATUS["AuthForbidden"],
+			"message": "only admin can use it.",
+		})
+		return
+	}
+
+	res, err := c.GetRawData()
+	if err != nil {
+		log.Println("update user get raw error:" + err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"message": "InternalError, see logs",
+			"code":    config.STATUS["InternalError"],
+		})
+		return
+	}
+	//fmt.Println("res:", string(res))
+	err = model.UpdateUser(res)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"message": "InternalError, see logs",
+			"code":    config.STATUS["InternalError"],
+		})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"code":    config.STATUS["OK"],
+		"message": "update user success.",
+	})
 }

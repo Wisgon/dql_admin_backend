@@ -36,10 +36,12 @@ update_time: datetime @index(day) .
 # 在UI的Mutate输入：
 #{
 #	set{
-#    _:r <role_id> "admin" .
-#    _:r <name> "超级管理员" .
+#    _:r1 <role_id> "admin" .
+#    _:r1 <name> "超级管理员" .
 #    _:r2 <role_id> "editor" .
 #    _:r2 <name> "普通用户" .
+#    _:r3 <role_id> "tourist" .
+#    _:r3 <name> "游客" .
 #  }
 #}
 

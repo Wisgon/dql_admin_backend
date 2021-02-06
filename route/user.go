@@ -15,6 +15,7 @@ func Users() {
 	userManagementRouter := Router.Group("/userManagement").Use(middleware.JWTAuth())
 	{
 		userManagementRouter.POST("/getList", services.GetUserList)
+		userManagementRouter.POST("/doEdit", services.UpdateUser)
 	}
 	Router.POST("/user/regist", services.RegistUser)
 	Router.POST("/user/login", services.Login)
