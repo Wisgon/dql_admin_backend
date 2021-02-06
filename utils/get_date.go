@@ -22,10 +22,12 @@ func GetTimeString(mode string) string {
 func ChangeTimeFormat(mode string, timeStr string) string {
 	// 在普通日期时间格式和dql要求的日期时间格式之间转换
 	// 普通格式： 2020-06-03 12:33:11
-	// dql要求的格式： 2020-06-03T12:33:11
+	// dql要求的格式： 2020-06-03T12:33:11Z
 	switch mode {
 	case "dql2normal":
-		return strings.Replace(timeStr, "T", " ", 1)
+		noT := strings.Replace(timeStr, "T", " ", 1)
+		noZ := strings.Replace(noT, "Z", "", 1)
+		return noZ
 	case "normal2dql":
 		return strings.Replace(timeStr, " ", "T", 1)
 	default:

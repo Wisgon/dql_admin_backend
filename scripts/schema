@@ -12,6 +12,8 @@ type User {
 type Role {
   role_id
   name
+  create_time
+  update_time
 }
 
 

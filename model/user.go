@@ -10,6 +10,7 @@ import (
 	"log"
 )
 
+// ==============below is some method of struct User
 func (u User) CreateUser() error {
 	var ctx = context.Background()
 	query := fmt.Sprintf(`
@@ -42,8 +43,9 @@ func (u User) CreateUser() error {
 	_:new_user <avatar> "%s" .
 	_:new_user <dgraph.type> "User" .
 	_:new_user <create_time> "%s" .
+	_:new_user <update_time> "%s" .
 	_:new_user <roles> <%s> .
-	`, u.UserName, u.Password, u.PhoneNumber, u.Avatar, nowTime, config.NormalRoleId)
+	`, u.UserName, u.Password, u.PhoneNumber, u.Avatar, nowTime, nowTime, config.NormalRoleId)
 	// 上面的config.NormalRoleId，是当前的普通role的再数据库的id，如果重新建库可能会有不同，要去config.NormalRoleId修改
 	mutationString["mutation"] = mu
 
@@ -123,24 +125,11 @@ func (u *User) GetUserInfo(condition string) error {
 		return err
 	}
 
-	resp, err := Query(context.Background(), query)
-	if err != nil {
-		log.Println("query userinfo error: " + err.Error())
-		return err
-	}
-	// fmt.Println("resp:", string(resp.Json))
-	users := UsersStru{}
-	err = json.Unmarshal(resp.Json, &users)
-	if err != nil {
-		log.Println("parse users json error:" + err.Error())
-		//return err
-	}
-	if len(users.Users) == 0 {
-		err = errors.New("user not found!")
-		return err
-	}
-	// fmt.Printf("user is:%+v\n", users)
 	// 用user的struct代替了下面的jsonparser
+	users, err := getUsers(query)
+	if err != nil {
+		return err
+	}
 	user := users.Users[0] // 第一个就是
 	u.UserName, u.Avatar, u.PhoneNumber, u.Roles = user.UserName, user.Avatar, user.PhoneNumber, user.Roles
 
@@ -267,5 +256,64 @@ func (u *User) VerifyPwd() (result bool, err error) {
 	// 	return false, err
 	// }
 	// fmt.Println("result: ", result)
+	return
+}
+
+// ============below is not method but is outside function
+
+func GetUserList(pageSize int, pageNo int) (users UsersStru, err error) {
+	if pageNo <= 0 {
+		pageNo = 1
+	}
+	if pageSize <= 0 {
+		pageSize = 10
+	}
+	query := fmt.Sprintf(`{
+		users(func: type(User), first:%d, offset:%d) {
+			uid
+			username
+			phone
+			update_time
+			roles{
+				role_id
+			}
+		}
+	}
+		
+	`, pageSize, pageSize*(pageNo-1))
+	users, err = getUsers(query)
+	for i, _ := range users.Users {
+		// todo: email暂时写死
+		users.Users[i].Email = "xxxx@qq.com"
+		permissions := []string{}
+		for _, role := range users.Users[i].Roles {
+			permissions = append(permissions, role.RoleID)
+		}
+		users.Users[i].Permissions = permissions
+		users.Users[i].UpdateTime = utils.ChangeTimeFormat("dql2normal", users.Users[i].UpdateTime)
+	}
+	return
+}
+
+// ===========below is some useful function
+
+func getUsers(query string) (users UsersStru, err error) {
+	resp, err := Query(context.Background(), query)
+	// fmt.Printf("user is:%+v\n", users)
+	if err != nil {
+		log.Println("query users error: " + err.Error())
+		return
+	}
+	//fmt.Println("resp:", string(resp.Json))
+	err = json.Unmarshal(resp.Json, &users)
+	if err != nil {
+		log.Println("parse users json error:" + err.Error())
+		return
+	}
+	if len(users.Users) == 0 {
+		err = errors.New("user not found!")
+		log.Println("no user found, query:" + query)
+		return
+	}
 	return
 }

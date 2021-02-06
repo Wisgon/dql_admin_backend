@@ -5,7 +5,6 @@ import (
 	"dql_admin_backend/middleware"
 	"dql_admin_backend/model"
 	"dql_admin_backend/utils"
-	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -19,9 +18,21 @@ type RegistForm struct {
 	PhoneCode string `form:"phoneCode"` // 验证码
 }
 
+type Pagination struct {
+	PageSize int `json:"pageSize"`
+	PageNo   int `json:"pageNo"`
+}
+
 func RegistUser(c *gin.Context) {
 	var formData RegistForm
-	if c.ShouldBind(&formData) == nil {
+	if err := c.ShouldBind(&formData); err != nil {
+		log.Println("regist bind fail!!!")
+		c.JSON(http.StatusOK, gin.H{
+			"message": "注册失败",
+			"code":    config.STATUS["InvalidParam"],
+		})
+		return
+	} else {
 		newUser := formData.User
 		err := newUser.CreateUser()
 		if err != nil {
@@ -46,13 +57,6 @@ func RegistUser(c *gin.Context) {
 				return
 			}
 		}
-	} else {
-		log.Println("bind fail!!!")
-		c.JSON(http.StatusOK, gin.H{
-			"message": "注册失败",
-			"code":    config.STATUS["InvalidParam"],
-		})
-		return
 	}
 	c.JSON(http.StatusOK, gin.H{
 		"message": "注册成功",
@@ -62,23 +66,31 @@ func RegistUser(c *gin.Context) {
 
 func Login(c *gin.Context) {
 	var user model.User
-	_ = c.ShouldBind(&user)
-	result, err := user.VerifyPwd()
-	if err != nil {
-		log.Println("verifypwd error: " + err.Error())
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"message": err.Error(),
-			"code":    config.STATUS["InternalError"],
-		})
-	}
-	if !result {
+	if err := c.ShouldBind(&user); err != nil {
+		log.Println("login bind fail!!!")
 		c.JSON(http.StatusOK, gin.H{
-			"message": "用户名或密码错误",
+			"message": "数据错误",
 			"code":    config.STATUS["InvalidParam"],
 		})
 		return
+	} else {
+		result, err := user.VerifyPwd()
+		if err != nil {
+			log.Println("verifypwd error: " + err.Error())
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"message": err.Error(),
+				"code":    config.STATUS["InternalError"],
+			})
+		}
+		if !result {
+			c.JSON(http.StatusOK, gin.H{
+				"message": "用户名或密码错误",
+				"code":    config.STATUS["InvalidParam"],
+			})
+			return
+		}
+		tokenNext(c, user)
 	}
-	tokenNext(c, user)
 
 }
 
@@ -129,10 +141,17 @@ func GetUserInfo(c *gin.Context) {
 	}
 	err := user.GetUserInfo("id")
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"code":    config.STATUS["InternalError"],
-			"message": "get user info error",
-		})
+		if err.Error() == "user not found!" {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"code":    config.STATUS["NotFound"],
+				"message": "user not found",
+			})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"code":    config.STATUS["InternalError"],
+				"message": "get user info error, see logs",
+			})
+		}
 		return
 	}
 	permissions := []string{}
@@ -158,14 +177,39 @@ func Logout(c *gin.Context) {
 }
 
 func GetUserList(c *gin.Context) {
-	judgeAthRes := utils.JudgeAuthority(c, "admin")
-	if !judgeAthRes {
-		c.JSON(http.StatusForbidden, gin.H{
-			"code": config.STATUS["AuthForbidden"],
-			"message": 
+	var pagination Pagination
+	if err := c.ShouldBind(&pagination); err != nil {
+		log.Println("get User list bind fail!!!")
+		c.JSON(http.StatusOK, gin.H{
+			"message": "数据错误",
+			"code":    config.STATUS["InvalidParam"],
 		})
 		return
+	} else {
+		judgeAthRes := utils.JudgeAuthority(c, "admin")
+		if !judgeAthRes {
+			c.JSON(http.StatusForbidden, gin.H{
+				"code":    config.STATUS["AuthForbidden"],
+				"message": "only admin can use it.",
+			})
+			return
+		}
+		// get list
+		userList, err := model.GetUserList(pagination.PageSize, pagination.PageNo)
+		if err != nil {
+			c.JSON(http.StatusForbidden, gin.H{
+				"code":    config.STATUS["InternalError"],
+				"message": "get user list error, see logs",
+			})
+			return
+		}
+		// fmt.Println("userList:", userList)
+
+		c.JSON(http.StatusOK, gin.H{
+			"code":    config.STATUS["OK"],
+			"message": "get user list success.",
+			"data":    userList.Users,
+		})
 	}
-	fmt.Println("auth pass")
-	// todo: get user list
+
 }
