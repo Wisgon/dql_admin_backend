@@ -234,6 +234,6 @@ func UpdateUser(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{
 		"code":    config.STATUS["OK"],
-		"message": "update user success.",
+		"message": "成功更新用户数据",
 	})
 }

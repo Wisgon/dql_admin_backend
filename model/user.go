@@ -343,7 +343,7 @@ func UpdateUser(updateData []byte) error {
 	}
 	nowTime := utils.ChangeTimeFormat("normal2dql", utils.GetTimeString("date_and_time"))
 	mutationSet += "<" + uid + "> <update_time> \"" + nowTime + "\" .\n"
-	fmt.Println("mutation:", mutationSet, "delete:", mutationDelete)
+	//fmt.Println("mutation:", mutationSet, "delete:", mutationDelete)
 
 	// 接下来执行数据库操作
 	msArray, mdArray := []string{}, []string{}
