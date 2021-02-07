@@ -13,16 +13,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type RegistForm struct {
-	model.User
-	PhoneCode string `form:"phoneCode"` // 验证码
-}
-
-type Pagination struct {
-	PageSize int `json:"pageSize"`
-	PageNo   int `json:"pageNo"`
-}
-
 func RegistUser(c *gin.Context) {
 	var formData RegistForm
 	if err := c.ShouldBind(&formData); err != nil {

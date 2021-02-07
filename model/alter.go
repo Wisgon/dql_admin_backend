@@ -24,10 +24,10 @@ func UpdatePredicateName(ctx context.Context, oldFieldName string, newFieldName 
 	defer txn.Discard(ctx)
 	query := fmt.Sprintf(`
 	query {
-	  		u as var(func: type(%s)){
-	  			n as %s
-	  		}
-	  	}
+		u as var(func: type(%s)){
+			n as %s
+		}
+	}
 	`, theType, oldFieldName)
 
 	s := fmt.Sprintf(`uid(u) <%s>  val(n) .`, newFieldName)

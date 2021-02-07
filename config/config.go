@@ -10,9 +10,6 @@ var DB = DgraphInfo{
 
 var JwtSignString = "Rf9REe9feFe98ReY"
 
-// 普通用户的角色id，创建用户时的默认选项
-// var NormalRoleId = "0x4e25" // company
-
 var STATUS = map[string]int{
 	"OK":            0,
 	"NotFound":      1,
@@ -21,3 +18,14 @@ var STATUS = map[string]int{
 	"ParseError":    4,
 	"InvalidParam":  5,
 }
+
+// 除这些之外，因为不同环境这些设置不同，所以放置到了local_config.go里并gitignore了
+// local_config里面必须包含下面这些变量设置：
+/*
+
+普通用户的角色id，创建用户时的默认选项
+var NormalRoleId = "0x4e25" // company
+
+根目录
+var Root = "/home/zhilong/Documents/my_projects/dql_admin_backend"
+*/

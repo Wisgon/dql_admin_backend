@@ -38,10 +38,13 @@ update_time: datetime @index(day) .
 #	set{
 #    _:r1 <role_id> "admin" .
 #    _:r1 <name> "超级管理员" .
+#    _:r1 <dgraph.type> "Role" .
 #    _:r2 <role_id> "editor" .
 #    _:r2 <name> "普通用户" .
+#    _:r2 <dgraph.type> "Role" .
 #    _:r3 <role_id> "tourist" .
 #    _:r3 <name> "游客" .
+#    _:r3 <dgraph.type> "Role" .
 #  }
 #}
 

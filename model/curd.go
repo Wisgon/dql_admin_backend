@@ -7,6 +7,13 @@ import (
 	"github.com/dgraph-io/dgo/v200/protos/api"
 )
 
+/*
+param: mutationString是每一个mutation，每个mutation类似这样：
+`
+	_:n1 <name> "user" .
+	_:n1 <email> "user@dgraphO.io" .
+`
+*/
 func MutationSet(ctx context.Context, mutation string) (*api.Response, error) {
 	txn := client.NewTxn()
 	//fmt.Println("mu: ", mutation)
@@ -23,36 +30,16 @@ func MutationSet(ctx context.Context, mutation string) (*api.Response, error) {
 	return assigned, nil
 }
 
-/*
-param: mutationString是每一个mutation，每个mutation类似这样：
-`
-	_:n1 <name> "user" .
-	_:n1 <email> "user@dgraphO.io" .
-`
-*/
-func MutationSetWithConditionUpsert(ctx context.Context, mutationStrings []map[string]string, query string) (*api.Response, error) {
+func MutationDelete(ctx context.Context, mutationString string) (resp *api.Response, err error) {
+	// 要指定uid，就先外面组装好mutationString再传进来
 	txn := client.NewTxn()
 	defer txn.Discard(ctx)
-	var mutations []*api.Mutation
-	for _, v := range mutationStrings {
-		mutations = append(mutations, &api.Mutation{
-			Cond:      v["cond"],
-			SetNquads: []byte(v["mutation"]),
-		})
-	}
-
-	request := &api.Request{
-		Query:     query,
-		Mutations: mutations,
+	mu := &api.Mutation{
 		CommitNow: true,
+		DelNquads: []byte(mutationString),
 	}
-
-	results, err := txn.Do(context.Background(), request)
-	if err != nil {
-		return nil, err
-	}
-	return results, nil
-
+	resp, err = txn.Mutate(ctx, mu)
+	return
 }
 
 /*
@@ -82,6 +69,30 @@ if err != nil {
 }
 fmt.Println(results.Uids)
 */
+func MutationSetWithConditionUpsert(ctx context.Context, mutationStrings []map[string]string, query string) (*api.Response, error) {
+	txn := client.NewTxn()
+	defer txn.Discard(ctx)
+	var mutations []*api.Mutation
+	for _, v := range mutationStrings {
+		mutations = append(mutations, &api.Mutation{
+			Cond:      v["cond"],
+			SetNquads: []byte(v["mutation"]),
+		})
+	}
+
+	request := &api.Request{
+		Query:     query,
+		Mutations: mutations,
+		CommitNow: true,
+	}
+
+	results, err := txn.Do(context.Background(), request)
+	if err != nil {
+		return nil, err
+	}
+	return results, nil
+
+}
 
 func MutationSetWithUpsert(ctx context.Context, mutationStrings []string, query string) (*api.Response, error) {
 	txn := client.NewTxn()
@@ -129,16 +140,54 @@ func MutationDeleteWithUpsert(ctx context.Context, mutationStrings []string, que
 	return results, nil
 }
 
-func MutationDelete(ctx context.Context, mutationString string) (resp *api.Response, err error) {
-	// 要指定uid，就先外面组装好mutationString再传进来
+/*
+params:
+	setStrings: set的语句，形如：
+	`
+		_:n1 <name> "user" .
+		_:n1 <email> "user@dgraphO.io" .
+	`
+	delStrings: delete的语句，形如：
+	`
+		<0x222> <name> * .
+		<0x333> * * .
+	`
+returns:
+	response
+	error
+*/
+func MutationSetAndDeleteWithUpsert(ctx context.Context, setStrings []string, delStrings []string, query string) (*api.Response, error) {
 	txn := client.NewTxn()
 	defer txn.Discard(ctx)
-	mu := &api.Mutation{
-		CommitNow: true,
-		DelNquads: []byte(mutationString),
+	var mutations []*api.Mutation
+
+	if len(delStrings) != 0 {
+		for _, v := range delStrings {
+			mutations = append(mutations, &api.Mutation{
+				DelNquads: []byte(v),
+			})
+		}
 	}
-	resp, err = txn.Mutate(ctx, mu)
-	return
+
+	if len(setStrings) != 0 {
+		for _, v := range setStrings {
+			mutations = append(mutations, &api.Mutation{
+				SetNquads: []byte(v),
+			})
+		}
+	}
+
+	request := &api.Request{
+		Query:     query,
+		Mutations: mutations,
+		CommitNow: true,
+	}
+
+	results, err := txn.Do(context.Background(), request)
+	if err != nil {
+		return nil, err
+	}
+	return results, nil
 }
 
 func Query(ctx context.Context, query string) (resp *api.Response, err error) {

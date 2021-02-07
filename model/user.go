@@ -277,7 +277,9 @@ func GetUserList(pageSize int, pageNo int) (users UsersStru, err error) {
 			phone
 			update_time
 			roles{
+				uid
 				role_id
+				name
 			}
 		}
 	}
@@ -289,7 +291,7 @@ func GetUserList(pageSize int, pageNo int) (users UsersStru, err error) {
 		users.Users[i].Email = "xxxx@qq.com"
 		permissions := []string{}
 		for _, role := range users.Users[i].Roles {
-			permissions = append(permissions, role.RoleID)
+			permissions = append(permissions, role.UID)
 		}
 		users.Users[i].Permissions = permissions
 		users.Users[i].UpdateTime = utils.ChangeTimeFormat("dql2normal", users.Users[i].UpdateTime)
@@ -300,7 +302,8 @@ func GetUserList(pageSize int, pageNo int) (users UsersStru, err error) {
 func UpdateUser(updateData []byte) error {
 	var ctx = context.Background()
 	mutationSet := ""
-	uid, err := jsonparser.GetString(updateData, "uid")
+	mutationDelete := ""
+	uid, err := jsonparser.GetString(updateData, "update_data", "uid")
 	if err != nil {
 		log.Println("update user get uid error:" + err.Error())
 		return err
@@ -311,17 +314,47 @@ func UpdateUser(updateData []byte) error {
 			mutationSet += "<" + uid + "> <username> \"" + string(value) + "\" .\n"
 		case "password":
 			mutationSet += "<" + uid + "> <password> \"" + string(value) + "\" .\n"
+		case "permissions":
+			// permissions是由两个元素"add"和"delete"组成的对象，而每个元素又是对应的要添加或删除的permission的role的uid数组
+			_, newErr := jsonparser.ArrayEach(value, func(perValue []byte, dataType jsonparser.ValueType, offset int, err error) {
+				mutationSet += "<" + uid + "> <roles> <" + string(perValue) + "> .\n"
+			}, "add")
+			if newErr != nil {
+				log.Println("parse permissions add error:" + newErr.Error())
+				return newErr
+			}
+			_, newErr2 := jsonparser.ArrayEach(value, func(perValue []byte, dataType jsonparser.ValueType, offset int, err error) {
+				mutationDelete += "<" + uid + "> <roles> <" + string(perValue) + "> .\n"
+			}, "delete")
+			if newErr2 != nil {
+				log.Println("parse permissions add error:" + newErr2.Error())
+				return newErr2
+			}
+		case "uid":
+			return nil
+		default:
+			log.Println("update user no key name:" + string(key))
 		}
 		return nil
-	})
+	}, "update_data")
 	if err != nil {
 		log.Println("update user parse json error:" + err.Error())
 		return err
 	}
 	nowTime := utils.ChangeTimeFormat("normal2dql", utils.GetTimeString("date_and_time"))
 	mutationSet += "<" + uid + "> <update_time> \"" + nowTime + "\" .\n"
-	fmt.Println("mutation:", mutationSet)
-	resp, err := MutationSet(ctx, mutationSet)
+	fmt.Println("mutation:", mutationSet, "delete:", mutationDelete)
+
+	// 接下来执行数据库操作
+	msArray, mdArray := []string{}, []string{}
+	if mutationSet != "" {
+		msArray = append(msArray, mutationSet)
+	}
+	if mutationDelete != "" {
+		mdArray = append(mdArray, mutationDelete)
+	}
+
+	resp, err := MutationSetAndDeleteWithUpsert(ctx, msArray, mdArray, "")
 	if err != nil {
 		log.Println("update user mutation set error:" + err.Error())
 		return err
@@ -332,8 +365,6 @@ func UpdateUser(updateData []byte) error {
 		log.Println("some error happen, len(resp.Json) is not 0, resp.Json:" + string(resp.Json))
 		return err
 	}
-
-	// todo: permissions mutation
 	return nil
 }
 

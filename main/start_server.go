@@ -18,5 +18,6 @@ func main() {
 	log.Println("starting server~~~")
 	r := route.Router
 	route.Users()
+	route.Roles()
 	r.Run(":8063")
 }
