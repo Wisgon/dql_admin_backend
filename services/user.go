@@ -4,7 +4,6 @@ import (
 	"dql_admin_backend/config"
 	"dql_admin_backend/middleware"
 	"dql_admin_backend/model"
-	"dql_admin_backend/utils"
 	"log"
 	"net/http"
 	"time"
@@ -93,9 +92,18 @@ func tokenNext(c *gin.Context, user model.User) {
 	for _, role := range user.Roles {
 		roleString += role.RoleID + "#" // 每个role用#号分隔
 	}
+	sc, err := model.GetSystemConfig()
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"code":    config.STATUS["InternalError"],
+			"message": "获取system config失败，see logs",
+		})
+		return
+	}
 	claims := middleware.CustomClaims{
-		ID:    user.UID,
-		Roles: roleString,
+		ID:                user.UID,
+		Roles:             roleString,
+		PermissionVersion: sc.SystemConfigs[0].PermissionVersion,
 		StandardClaims: jwt.StandardClaims{
 			NotBefore: time.Now().Unix() - 1000,       // 签名生效时间
 			ExpiresAt: time.Now().Unix() + 60*60*24*7, // 过期时间 一周
@@ -176,7 +184,7 @@ func GetUserList(c *gin.Context) {
 		})
 		return
 	} else {
-		isAdmin := utils.JudgeAuthority(c, "admin")
+		isAdmin := JudgeAuthority(c, "admin")
 		if !isAdmin {
 			c.JSON(http.StatusForbidden, gin.H{
 				"code":    config.STATUS["AuthForbidden"],
@@ -205,7 +213,7 @@ func GetUserList(c *gin.Context) {
 }
 
 func UpdateUser(c *gin.Context) {
-	isAdmin := utils.JudgeAuthority(c, "admin")
+	isAdmin := JudgeAuthority(c, "admin")
 	if !isAdmin {
 		c.JSON(http.StatusForbidden, gin.H{
 			"code":    config.STATUS["AuthForbidden"],

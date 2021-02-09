@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"dql_admin_backend/config"
+	"dql_admin_backend/model"
 	"errors"
 	"net/http"
 	"time"
@@ -16,7 +17,7 @@ func JWTAuth() gin.HandlerFunc {
 		token := c.Request.Header.Get("accessToken")
 		if token == "" {
 			c.JSON(http.StatusForbidden, gin.H{
-				"code":    1,
+				"code":    config.STATUS["AuthForbidden"],
 				"message": "未登录或非法访问",
 			})
 			c.Abort()
@@ -29,27 +30,48 @@ func JWTAuth() gin.HandlerFunc {
 		if err != nil {
 			if err == TokenExpired {
 				c.JSON(http.StatusForbidden, gin.H{
-					"code":    2,
+					"code":    config.STATUS["AuthForbidden"],
 					"message": "授权已过期",
 				})
 				c.Abort()
 				return
 			}
 			c.JSON(http.StatusUnauthorized, gin.H{
-				"code":    3,
+				"code":    config.STATUS["InvalidParam"],
 				"message": "parse token error: " + err.Error(),
 			})
 			c.Abort()
 			return
 		}
+
+		//判断permission version
+		sc, err := model.GetSystemConfig()
+		if err != nil {
+			c.JSON(http.StatusForbidden, gin.H{
+				"code":    config.STATUS["InternalError"],
+				"message": "读取权限版本数据库错误",
+			})
+			c.Abort()
+			return
+		}
+		if claims.PermissionVersion != sc.SystemConfigs[0].PermissionVersion {
+			c.JSON(http.StatusForbidden, gin.H{
+				"code":    config.STATUS["AuthForbidden"],
+				"message": "角色权限版本不对，请重新登陆",
+			})
+			c.Abort()
+			return
+		}
+
 		c.Set("claims", claims)
 		c.Next()
 	}
 }
 
 type CustomClaims struct {
-	ID    string
-	Roles string
+	ID                string
+	Roles             string
+	PermissionVersion string
 	jwt.StandardClaims
 }
 

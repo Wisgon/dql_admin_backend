@@ -3,7 +3,6 @@ package services
 import (
 	"dql_admin_backend/config"
 	"dql_admin_backend/model"
-	"dql_admin_backend/utils"
 	"log"
 	"net/http"
 
@@ -20,7 +19,7 @@ func GetRoles(c *gin.Context) {
 		})
 		return
 	} else {
-		isAdmin := utils.JudgeAuthority(c, "admin")
+		isAdmin := JudgeAuthority(c, "admin")
 		if !isAdmin {
 			c.JSON(http.StatusForbidden, gin.H{
 				"code":    config.STATUS["AuthForbidden"],

@@ -12,8 +12,14 @@ type User {
 type Role {
   role_id
   name
+  accessablePages
   create_time
   update_time
+}
+
+# 这个config是整个系统的配置，只有一个节点的
+type SystemConfig {
+  permission_version  # 权限版本，后台每次更改了权限，这个值都会变化，然后在每次的请求检验token时，都要检验这个值，如果对不上，则判为token过期，要重新登陆
 }
 
 
@@ -27,8 +33,11 @@ roles: [uid] @reverse .
 
 name: string @index(hash) .
 role_id: string @index(hash) @upsert .
+accessablePages: [string] .
 create_time: datetime @index(day) .
 update_time: datetime @index(day) .
+
+permission_version: string .
 
 
 #======初始化步骤=========================

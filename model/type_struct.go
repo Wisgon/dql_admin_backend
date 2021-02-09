@@ -20,10 +20,20 @@ type Role struct {
 	RoleName string `json:"name"`
 }
 
+type SystemConfig struct {
+	UID               string `json:"uid"`
+	PermissionVersion string `json:"permission_version"`
+}
+
 type UsersStru struct {
 	Users []User `json:"users"`
 }
 
 type RolesStru struct {
 	Roles []Role `json:"roles"`
+}
+
+// 虽然SystemConfig只有一个节点，但是query的时候还是拿到的数组
+type SystemConfigStru struct {
+	SystemConfigs []SystemConfig `json:"system_configs"`
 }

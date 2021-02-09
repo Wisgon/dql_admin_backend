@@ -368,10 +368,32 @@ func UpdateUser(updateData []byte) error {
 	return nil
 }
 
+func GetSystemConfig() (sc SystemConfigStru, err error) {
+	ctx := context.Background()
+	query := fmt.Sprintf(`{
+		system_configs(func: uid(%s)) {
+			uid
+			permission_version
+		}
+	}`, config.SystemConfigNodeId)
+	resp, err := Query(ctx, query)
+	if err != nil {
+		log.Println("query system config error:" + err.Error())
+		return
+	}
+	err = json.Unmarshal(resp.Json, &sc)
+	if err != nil {
+		log.Println("parse sc error:" + err.Error())
+		return
+	}
+	return
+}
+
 // ===========below is some useful function
 
 func getUsers(query string) (users UsersStru, err error) {
-	resp, err := Query(context.Background(), query)
+	ctx := context.Background()
+	resp, err := Query(ctx, query)
 	// fmt.Printf("user is:%+v\n", users)
 	if err != nil {
 		log.Println("query users error: " + err.Error())
