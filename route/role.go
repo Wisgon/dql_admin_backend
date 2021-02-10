@@ -9,5 +9,7 @@ func Roles() {
 	roleRouter := Router.Group("/roleManagement").Use(middleware.JWTAuth())
 	{
 		roleRouter.POST("/getList", services.GetRoles)
+		roleRouter.GET("/accessable_pages", services.GetAccessablePages)
+		roleRouter.POST("/doEdit", services.DoEdit)
 	}
 }

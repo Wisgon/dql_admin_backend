@@ -12,7 +12,7 @@ type User {
 type Role {
   role_id
   name
-  accessablePages
+  accessable_pages
   create_time
   update_time
 }
@@ -33,7 +33,7 @@ roles: [uid] @reverse .
 
 name: string @index(hash) .
 role_id: string @index(hash) @upsert .
-accessablePages: [string] .
+accessable_pages: [string] .
 create_time: datetime @index(day) .
 update_time: datetime @index(day) .
 

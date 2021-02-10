@@ -186,10 +186,6 @@ func GetUserList(c *gin.Context) {
 	} else {
 		isAdmin := JudgeAuthority(c, "admin")
 		if !isAdmin {
-			c.JSON(http.StatusForbidden, gin.H{
-				"code":    config.STATUS["AuthForbidden"],
-				"message": "only admin can use it.",
-			})
 			return
 		}
 		// get list
@@ -215,10 +211,6 @@ func GetUserList(c *gin.Context) {
 func UpdateUser(c *gin.Context) {
 	isAdmin := JudgeAuthority(c, "admin")
 	if !isAdmin {
-		c.JSON(http.StatusForbidden, gin.H{
-			"code":    config.STATUS["AuthForbidden"],
-			"message": "only admin can use it.",
-		})
 		return
 	}
 

@@ -5,6 +5,7 @@ import (
 	"dql_admin_backend/model"
 	"errors"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -44,23 +45,25 @@ func JWTAuth() gin.HandlerFunc {
 			return
 		}
 
-		//判断permission version
-		sc, err := model.GetSystemConfig()
-		if err != nil {
-			c.JSON(http.StatusForbidden, gin.H{
-				"code":    config.STATUS["InternalError"],
-				"message": "读取权限版本数据库错误",
-			})
-			c.Abort()
-			return
-		}
-		if claims.PermissionVersion != sc.SystemConfigs[0].PermissionVersion {
-			c.JSON(http.StatusForbidden, gin.H{
-				"code":    config.STATUS["AuthForbidden"],
-				"message": "角色权限版本不对，请重新登陆",
-			})
-			c.Abort()
-			return
+		//非admin用户判断permission version
+		if !strings.Contains(claims.Roles, "admin") {
+			sc, err := model.GetSystemConfig()
+			if err != nil {
+				c.JSON(http.StatusForbidden, gin.H{
+					"code":    config.STATUS["InternalError"],
+					"message": "读取权限版本数据库错误",
+				})
+				c.Abort()
+				return
+			}
+			if claims.PermissionVersion != sc.SystemConfigs[0].PermissionVersion {
+				c.JSON(http.StatusForbidden, gin.H{
+					"code":    config.STATUS["AuthForbidden"],
+					"message": "角色权限版本不对，请重新登陆",
+				})
+				c.Abort()
+				return
+			}
 		}
 
 		c.Set("claims", claims)

@@ -15,9 +15,10 @@ type User struct {
 }
 
 type Role struct {
-	UID      string `json:"uid"`
-	RoleID   string `json:"role_id"`
-	RoleName string `json:"name"`
+	UID             string   `json:"uid"`
+	RoleID          string   `json:"role_id"`
+	RoleName        string   `json:"name"`
+	AccessablePages []string `json:"accessable_pages"`
 }
 
 type SystemConfig struct {

@@ -16,4 +16,9 @@ func main() {
 	// }
 	// fmt.Println("p:", users)
 
+	// split demo
+	// a := "33#44#55#"
+	// b := strings.Split(a, "#")
+	// fmt.Printf("%+v, lenis:%d\n", b, len(b))
+
 }
