@@ -214,26 +214,38 @@ func UpdateUser(c *gin.Context) {
 		return
 	}
 
-	res, err := c.GetRawData()
-	if err != nil {
-		log.Println("update user get raw error:" + err.Error())
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"message": "InternalError, see logs",
-			"code":    config.STATUS["InternalError"],
-		})
-		return
-	}
+	// res, err := c.GetRawData()
+	// if err != nil {
+	// 	log.Println("update user get raw error:" + err.Error())
+	// 	c.JSON(http.StatusInternalServerError, gin.H{
+	// 		"message": "InternalError, see logs",
+	// 		"code":    config.STATUS["InternalError"],
+	// 	})
+	// 	return
+	// }
 	//fmt.Println("res:", string(res))
-	err = model.UpdateUser(res)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"message": "InternalError, see logs",
-			"code":    config.STATUS["InternalError"],
+
+	var user model.User
+	if err := c.ShouldBind(&user); err != nil {
+		log.Println("login bind fail!!!" + err.Error())
+		c.JSON(http.StatusOK, gin.H{
+			"message": "数据错误",
+			"code":    config.STATUS["InvalidParam"],
 		})
 		return
+	} else {
+		err = model.UpdateUser(user)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"message": "InternalError, see logs",
+				"code":    config.STATUS["InternalError"],
+			})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{
+			"code":    config.STATUS["OK"],
+			"message": "成功更新用户数据",
+		})
 	}
-	c.JSON(http.StatusOK, gin.H{
-		"code":    config.STATUS["OK"],
-		"message": "成功更新用户数据",
-	})
+
 }

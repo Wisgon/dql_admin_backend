@@ -8,8 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-
-	"github.com/buger/jsonparser"
 )
 
 // ==============below is some method of struct User
@@ -332,62 +330,87 @@ func GetUserList(pageSize int, pageNo int, username string, fuzz bool) (users Us
 	return
 }
 
-func UpdateUser(updateData []byte) error {
+func UpdateUser(user User) error {
 	var ctx = context.Background()
-	mutationSet := ""
-	mutationDelete := ""
-	uid, err := jsonparser.GetString(updateData, "update_data", "uid")
-	if err != nil {
-		log.Println("update user get uid error:" + err.Error())
-		return err
-	}
-	err = jsonparser.ObjectEach(updateData, func(key, value []byte, dataType jsonparser.ValueType, offset int) error {
-		switch string(key) {
-		case "username":
-			mutationSet += "<" + uid + "> <username> \"" + string(value) + "\" .\n"
-		case "password":
-			mutationSet += "<" + uid + "> <password> \"" + string(value) + "\" .\n"
-		case "permissions":
-			// permissions是由两个元素"add"和"delete"组成的对象，而每个元素又是对应的要添加或删除的permission的role的uid数组
-			_, newErr := jsonparser.ArrayEach(value, func(perValue []byte, dataType jsonparser.ValueType, offset int, err error) {
-				mutationSet += "<" + uid + "> <roles> <" + string(perValue) + "> .\n"
-			}, "add")
-			if newErr != nil {
-				log.Println("parse permissions add error:" + newErr.Error())
-				return newErr
-			}
-			_, newErr2 := jsonparser.ArrayEach(value, func(perValue []byte, dataType jsonparser.ValueType, offset int, err error) {
-				mutationDelete += "<" + uid + "> <roles> <" + string(perValue) + "> .\n"
-			}, "delete")
-			if newErr2 != nil {
-				log.Println("parse permissions add error:" + newErr2.Error())
-				return newErr2
-			}
-		case "uid":
-			return nil
-		default:
-			log.Println("update user no key name:" + string(key))
-		}
-		return nil
-	}, "update_data")
-	if err != nil {
-		log.Println("update user parse json error:" + err.Error())
-		return err
-	}
-	nowTime := utils.ChangeTimeFormat("normal2dql", utils.GetTimeString("date_and_time"))
-	mutationSet += "<" + uid + "> <update_time> \"" + nowTime + "\" .\n"
-	//fmt.Println("mutation:", mutationSet, "delete:", mutationDelete)
+	// mutationSet := ""
+	// mutationDelete := ""
+	// uid, err := jsonparser.GetString(updateData, "update_data", "uid")
+	// if err != nil {
+	// 	log.Println("update user get uid error:" + err.Error())
+	// 	return err
+	// }
+	// err = jsonparser.ObjectEach(updateData, func(key, value []byte, dataType jsonparser.ValueType, offset int) error {
+	// 	switch string(key) {
+	// 	case "username":
+	// 		mutationSet += "<" + uid + "> <username> \"" + string(value) + "\" .\n"
+	// 	case "password":
+	// 		mutationSet += "<" + uid + "> <password> \"" + string(value) + "\" .\n"
+	// 	case "permissions":
+	// 		// permissions是由两个元素"add"和"delete"组成的对象，而每个元素又是对应的要添加或删除的permission的role的uid数组
+	// 		_, newErr := jsonparser.ArrayEach(value, func(perValue []byte, dataType jsonparser.ValueType, offset int, err error) {
+	// 			mutationSet += "<" + uid + "> <roles> <" + string(perValue) + "> .\n"
+	// 		}, "add")
+	// 		if newErr != nil {
+	// 			log.Println("parse permissions add error:" + newErr.Error())
+	// 			return newErr
+	// 		}
+	// 		_, newErr2 := jsonparser.ArrayEach(value, func(perValue []byte, dataType jsonparser.ValueType, offset int, err error) {
+	// 			mutationDelete += "<" + uid + "> <roles> <" + string(perValue) + "> .\n"
+	// 		}, "delete")
+	// 		if newErr2 != nil {
+	// 			log.Println("parse permissions add error:" + newErr2.Error())
+	// 			return newErr2
+	// 		}
+	// 	case "uid":
+	// 		return nil
+	// 	default:
+	// 		log.Println("update user no key name:" + string(key))
+	// 	}
+	// 	return nil
+	// }, "update_data")
+	// if err != nil {
+	// 	log.Println("update user parse json error:" + err.Error())
+	// 	return err
+	// }
+	// nowTime := utils.ChangeTimeFormat("normal2dql", utils.GetTimeString("date_and_time"))
+	// mutationSet += "<" + uid + "> <update_time> \"" + nowTime + "\" .\n"
+	// //fmt.Println("mutation:", mutationSet, "delete:", mutationDelete)
 
-	// 接下来执行数据库操作
-	msArray, mdArray := []string{}, []string{}
-	if mutationSet != "" {
-		msArray = append(msArray, mutationSet)
+	// // 接下来执行数据库操作
+	// msArray, mdArray := []string{}, []string{}
+	// if mutationSet != "" {
+	// 	msArray = append(msArray, mutationSet)
+	// }
+	// if mutationDelete != "" {
+	// 	mdArray = append(mdArray, mutationDelete)
+	// }
+
+	mutationDelete := ""
+	mutationSet := ""
+
+	if user.UserName != "" {
+		mutationSet += "<" + user.UID + "> <username> \"" + user.UserName + "\" .\n"
 	}
+	if user.Password != "" {
+		mutationSet += "< " + user.UID + "> <password> \"" + user.Password + "\" .\n"
+	}
+	if len(user.Permissions) != 0 {
+		// 这里的每个permission就是每个role的uid
+		mutationDelete += "<" + user.UID + "> <roles> * .\n"
+		for _, permission := range user.Permissions {
+			mutationSet += "<" + user.UID + "> <roles> <" + permission + "> .\n"
+		}
+	}
+
+	msArray, mdArray := []string{}, []string{}
 	if mutationDelete != "" {
 		mdArray = append(mdArray, mutationDelete)
 	}
+	if mutationSet != "" {
+		msArray = append(msArray, mutationSet)
+	}
 
-	resp, err := MutationSetAndDeleteWithUpsert(ctx, msArray, mdArray, "")
+	resp, err := MutationDeleteAndSetWithUpsert(ctx, mdArray, msArray, "") //先delete后set
 	if err != nil {
 		log.Println("update user mutation set error:" + err.Error())
 		return err

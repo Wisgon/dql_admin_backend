@@ -157,6 +157,42 @@ returns:
 	error
 */
 func MutationSetAndDeleteWithUpsert(ctx context.Context, setStrings []string, delStrings []string, query string) (*api.Response, error) {
+	// 这是先set后delete
+	txn := client.NewTxn()
+	defer txn.Discard(ctx)
+	var mutations []*api.Mutation
+
+	if len(setStrings) != 0 {
+		for _, v := range setStrings {
+			mutations = append(mutations, &api.Mutation{
+				SetNquads: []byte(v),
+			})
+		}
+	}
+
+	if len(delStrings) != 0 {
+		for _, v := range delStrings {
+			mutations = append(mutations, &api.Mutation{
+				DelNquads: []byte(v),
+			})
+		}
+	}
+
+	request := &api.Request{
+		Query:     query,
+		Mutations: mutations,
+		CommitNow: true,
+	}
+
+	results, err := txn.Do(context.Background(), request)
+	if err != nil {
+		return nil, err
+	}
+	return results, nil
+}
+
+func MutationDeleteAndSetWithUpsert(ctx context.Context, delStrings []string, setStrings []string, query string) (*api.Response, error) {
+	// 这是先delete后set
 	txn := client.NewTxn()
 	defer txn.Discard(ctx)
 	var mutations []*api.Mutation

@@ -83,6 +83,7 @@ func GetAccessablePages(rolesString []string) (accessablePages map[string]map[st
 }
 
 func DoEdit(role Role) error {
+	// todo:由于dgraph无法一次性设置好数组，所以这里的策略是对于这种整个数组的更改，我们删掉原来的整个数组，然后重新建立数组，删除用 <0xyyy> <accessable_pages> * .
 	var ctx = context.Background()
 	nowTime := utils.ChangeTimeFormat("normal2dql", utils.GetTimeString("date_and_time"))
 	setPagesMutation := "<" + role.UID + "> <update_time> \"" + nowTime + "\" .\n"
