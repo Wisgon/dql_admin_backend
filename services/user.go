@@ -175,8 +175,8 @@ func Logout(c *gin.Context) {
 }
 
 func GetUserList(c *gin.Context) {
-	var pagination Pagination
-	if err := c.ShouldBind(&pagination); err != nil {
+	var searchQuery SearchQuery
+	if err := c.ShouldBind(&searchQuery); err != nil {
 		log.Println("get User list bind fail!!!" + err.Error())
 		c.JSON(http.StatusOK, gin.H{
 			"message": "数据错误",
@@ -189,7 +189,7 @@ func GetUserList(c *gin.Context) {
 			return
 		}
 		// get list
-		userList, err := model.GetUserList(pagination.PageSize, pagination.PageNo)
+		userList, err := model.GetUserList(searchQuery.PageSize, searchQuery.PageNo, searchQuery.Username, searchQuery.Fuzz)
 		if err != nil {
 			c.JSON(http.StatusForbidden, gin.H{
 				"code":    config.STATUS["InternalError"],

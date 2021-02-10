@@ -25,7 +25,7 @@ type SystemConfig {
 
 # =============Define Predicates
 
-username: string @index(hash) @upsert .
+username: string @index(trigram, term) @upsert .
 password: string .
 phone: string @index(hash) @upsert .
 avatar: string .

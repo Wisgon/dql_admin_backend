@@ -19,6 +19,12 @@ type Pagination struct {
 	PageNo   int `json:"pageNo"`
 }
 
+type SearchQuery struct {
+	Pagination
+	Username string `json:"username"`
+	Fuzz     bool   `json:"fuzz"`
+}
+
 func JudgeAuthority(c *gin.Context, role string) bool {
 	claims := c.MustGet("claims").(*middleware.CustomClaims) // 获取token解析出来的用户信息
 	if !strings.Contains(claims.Roles, role) {

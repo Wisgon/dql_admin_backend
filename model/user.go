@@ -263,28 +263,61 @@ func (u *User) VerifyPwd() (result bool, err error) {
 
 // ============below is not method but is outside function
 
-func GetUserList(pageSize int, pageNo int) (users UsersStru, err error) {
+func GetUserList(pageSize int, pageNo int, username string, fuzz bool) (users UsersStru, err error) {
 	if pageNo <= 0 {
 		pageNo = 1
 	}
 	if pageSize <= 0 {
 		pageSize = 10
 	}
-	query := fmt.Sprintf(`{
-		users(func: type(User), first:%d, offset:%d) {
-			uid
-			username
-			phone
-			update_time
-			roles{
+	var query = ""
+	if username == "" {
+		query = fmt.Sprintf(`{
+			users(func: type(User), first:%d, offset:%d) {
 				uid
-				role_id
-				name
+				username
+				phone
+				update_time
+				roles{
+					uid
+					role_id
+					name
+				}
 			}
 		}
+		`, pageSize, pageSize*(pageNo-1))
+	} else {
+		if fuzz == true {
+			query = fmt.Sprintf(`{
+				users(func: type(User), first:%d, offset:%d) @filter(regexp(username, /%s/)) {
+					uid
+					username
+					phone
+					update_time
+					roles{
+						uid
+						role_id
+						name
+					}
+				}
+			}`, pageSize, pageSize*(pageNo-1), username)
+		} else {
+			query = fmt.Sprintf(`{
+				users(func: type(User), first:%d, offset:%d) @filter(anyofterms(username, %s)) {
+					uid
+					username
+					phone
+					update_time
+					roles{
+						uid
+						role_id
+						name
+					}
+				}
+			}`, pageSize, pageSize*(pageNo-1), username)
+		}
 	}
-		
-	`, pageSize, pageSize*(pageNo-1))
+
 	users, err = getUsers(query)
 	for i, _ := range users.Users {
 		// todo: email暂时写死
@@ -405,10 +438,10 @@ func getUsers(query string) (users UsersStru, err error) {
 		log.Println("parse users json error:" + err.Error())
 		return
 	}
-	if len(users.Users) == 0 {
-		err = errors.New("user not found!")
-		log.Println("no user found, query:" + query)
-		return
-	}
+	// if len(users.Users) == 0 {
+	// 	err = errors.New("user not found!")
+	// 	log.Println("no user found, query:" + query)
+	// 	return
+	// }
 	return
 }

@@ -11,6 +11,36 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+func CreateRole(c *gin.Context) {
+	isAdmin := JudgeAuthority(c, "admin")
+	if !isAdmin {
+		return
+	}
+
+	role := model.Role{}
+	if err := c.ShouldBind(&role); err != nil {
+		log.Println("do edit bind fail!!!" + err.Error())
+		c.JSON(http.StatusOK, gin.H{
+			"message": "输入的数据错误",
+			"code":    config.STATUS["InvalidParam"],
+		})
+		return
+	} else {
+		err := model.CreateRole(role)
+		if err != nil {
+			c.JSON(http.StatusOK, gin.H{
+				"message": "创建失败，请查看后台日志",
+				"code":    config.STATUS["InternalError"],
+			})
+			return
+		}
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"code":    config.STATUS["OK"],
+		"message": "创建成功",
+	})
+}
+
 func GetRoles(c *gin.Context) {
 	var pagination Pagination
 	if err := c.ShouldBind(&pagination); err != nil {

@@ -12,6 +12,27 @@ import (
 	"time"
 )
 
+func CreateRole(role Role) error {
+	var ctx = context.Background()
+	nowTime := utils.ChangeTimeFormat("normal2dql", utils.GetTimeString("date_and_time"))
+	mutation := fmt.Sprintf(`
+		_:r <create_time> "%s" .
+		_:r <name> "%s" .
+		_:r <role_id> "%s" .
+		_:r <dgraph.type> "Role" .
+	`, nowTime, role.RoleName, role.RoleID)
+	for _, page := range role.AccessablePages {
+		mutation += "\n_:r <accessable_pages> \"" + page + "\" .\n"
+	}
+	resp, err := MutationSet(ctx, mutation)
+	if err != nil {
+		return err
+	}
+	// fmt.Println("resp:", resp)
+	_ = resp.Uids
+	return nil
+}
+
 func GetRolesList(pageSize int, pageNo int) (roles RolesStru, err error) {
 	if pageNo <= 0 {
 		pageNo = 1
@@ -63,13 +84,14 @@ func GetAccessablePages(rolesString []string) (accessablePages map[string]map[st
 
 func DoEdit(role Role) error {
 	var ctx = context.Background()
-	setPagesMutation := ""
+	nowTime := utils.ChangeTimeFormat("normal2dql", utils.GetTimeString("date_and_time"))
+	setPagesMutation := "<" + role.UID + "> <update_time> \"" + nowTime + "\" .\n"
 	for _, page := range role.AccessablePages {
 		setPagesMutation += "<" + role.UID + "> " + "<accessable_pages> \"" + page + "\" .\n"
 	}
 
-	nowTime := strconv.Itoa(int(time.Now().Unix()))
-	version := utils.GetMd5(nowTime)
+	nowUnix := strconv.Itoa(int(time.Now().Unix()))
+	version := utils.GetMd5(nowUnix)
 	updatePermissionVersionMutation := "<" + config.SystemConfigNodeId + "> <permission_version> \"" + version + "\" .\n"
 
 	resp, err := MutationSetWithUpsert(ctx, []string{setPagesMutation, updatePermissionVersionMutation}, "")
@@ -77,7 +99,7 @@ func DoEdit(role Role) error {
 		log.Println("add accessable_pages error:" + err.Error() + " setPagesMutation:" + setPagesMutation)
 		return err
 	}
-	fmt.Println("resp:", resp)
+	// fmt.Println("resp:", resp)
 	// 成功的话，resp.Json是没有东西的
 	_ = resp.Uids
 	return nil
