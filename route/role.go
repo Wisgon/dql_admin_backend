@@ -10,7 +10,8 @@ func Roles() {
 	{
 		roleRouter.POST("/getList", services.GetRoles)
 		roleRouter.GET("/accessable_pages", services.GetAccessablePages)
-		roleRouter.POST("/doEdit", services.DoEdit)
+		roleRouter.POST("/doEdit", services.EditRole)
 		roleRouter.POST("/create_role", services.CreateRole)
+		roleRouter.POST("/doDelete", services.DeleteRole)
 	}
 }

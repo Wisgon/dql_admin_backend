@@ -197,15 +197,13 @@ func GetUserList(c *gin.Context) {
 			})
 			return
 		}
-		// fmt.Println("userList:", userList)
-
+		// fmt.Println("userList:", userList.Users)
 		c.JSON(http.StatusOK, gin.H{
 			"code":    config.STATUS["OK"],
 			"message": "get user list success.",
 			"data":    userList.Users,
 		})
 	}
-
 }
 
 func UpdateUser(c *gin.Context) {
@@ -248,4 +246,35 @@ func UpdateUser(c *gin.Context) {
 		})
 	}
 
+}
+
+func DeleteUser(c *gin.Context) {
+	isAdmin := JudgeAuthority(c, "admin")
+	if !isAdmin {
+		return
+	}
+
+	user := model.User{}
+	if err := c.ShouldBind(&user); err != nil {
+		log.Println("do delete bind fail!!!" + err.Error())
+		c.JSON(http.StatusOK, gin.H{
+			"message": "输入的数据字段不对",
+			"code":    config.STATUS["InvalidParam"],
+		})
+		return
+	} else {
+		err := model.DeleteUser(user)
+		if err != nil {
+			c.JSON(http.StatusOK, gin.H{
+				"message": "删除失败，请查看后台日志",
+				"code":    config.STATUS["InternalError"],
+			})
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code":    config.STATUS["OK"],
+		"message": "删除成功",
+	})
 }

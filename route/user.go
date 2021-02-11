@@ -16,6 +16,7 @@ func Users() {
 	{
 		userManagementRouter.POST("/getList", services.GetUserList)
 		userManagementRouter.POST("/doEdit", services.UpdateUser)
+		userManagementRouter.POST("/doDelete", services.DeleteUser)
 	}
 	Router.POST("/user/regist", services.RegistUser)
 	Router.POST("/user/login", services.Login)

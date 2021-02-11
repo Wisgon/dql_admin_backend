@@ -445,6 +445,24 @@ func GetSystemConfig() (sc SystemConfigStru, err error) {
 	return
 }
 
+func DeleteUser(user User) error {
+	var ctx = context.Background()
+
+	deleteNodeMutation := utils.CombineNQuad(user.UID, "", "", "deleteAll")
+	// dmArray := []string{deleteEdgeMutation, deleteNodeMutation}
+
+	// resp, err := MutationDeleteWithUpsert(ctx, dmArray, query)
+	resp, err := MutationDelete(ctx, deleteNodeMutation)
+	if err != nil {
+		log.Printf("delete role error:"+err.Error()+" query:%+v\n", deleteNodeMutation)
+		return err
+	}
+	// fmt.Println("resp:", resp)
+	// 成功的话，resp.Json是没有东西的
+	_ = resp.Uids
+	return nil
+}
+
 // ===========below is some useful function
 
 func getUsers(query string) (users UsersStru, err error) {

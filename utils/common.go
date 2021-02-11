@@ -11,3 +11,19 @@ func CountJsonArray(jsonString []byte, arg ...string) (count int, err error) {
 	}, arg...)
 	return
 }
+
+/**
+RDF N-Quad format.
+Each triple has the form:
+<subject> <predicate> <object> .
+*/
+func CombineNQuad(uid string, predicate string, value string, valueType string) string {
+	switch valueType {
+	case "string":
+		return "<" + uid + "> <" + predicate + "> \"" + value + "\" .\n"
+	case "deleteAll":
+		return "<" + uid + "> * * .\n"
+	default:
+		return "<" + uid + "> <" + predicate + "> " + value + " .\n"
+	}
+}

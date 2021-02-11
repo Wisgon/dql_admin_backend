@@ -82,22 +82,79 @@ func GetAccessablePages(rolesString []string) (accessablePages map[string]map[st
 	return
 }
 
-func DoEdit(role Role) error {
-	// todo:由于dgraph无法一次性设置好数组，所以这里的策略是对于这种整个数组的更改，我们删掉原来的整个数组，然后重新建立数组，删除用 <0xyyy> <accessable_pages> * .
+func EditRole(role Role) error {
+	// 由于dgraph无法一次性设置好数组，所以这里的策略是对于这种整个数组的更改，我们删掉原来的整个数组，然后重新建立数组，删除用 <0xyyy> <accessable_pages> * .
 	var ctx = context.Background()
+
+	deleteMutation := utils.CombineNQuad(role.UID, "accessable_pages", "*", "other")
+
 	nowTime := utils.ChangeTimeFormat("normal2dql", utils.GetTimeString("date_and_time"))
-	setPagesMutation := "<" + role.UID + "> <update_time> \"" + nowTime + "\" .\n"
+	setPagesMutation := utils.CombineNQuad(role.UID, "update_time", nowTime, "string")
+	if role.RoleName != "" {
+		setPagesMutation += utils.CombineNQuad(role.UID, "name", role.RoleName, "string")
+	}
 	for _, page := range role.AccessablePages {
-		setPagesMutation += "<" + role.UID + "> " + "<accessable_pages> \"" + page + "\" .\n"
+		setPagesMutation += utils.CombineNQuad(role.UID, "accessable_pages", page, "string")
 	}
 
 	nowUnix := strconv.Itoa(int(time.Now().Unix()))
 	version := utils.GetMd5(nowUnix)
-	updatePermissionVersionMutation := "<" + config.SystemConfigNodeId + "> <permission_version> \"" + version + "\" .\n"
+	updatePermissionVersionMutation := utils.CombineNQuad(config.SystemConfigNodeId, "permission_version", version, "string")
 
-	resp, err := MutationSetWithUpsert(ctx, []string{setPagesMutation, updatePermissionVersionMutation}, "")
+	dmArray, smArray := []string{deleteMutation}, []string{setPagesMutation, updatePermissionVersionMutation}
+
+	resp, err := MutationDeleteAndSetWithUpsert(ctx, dmArray, smArray, "")
 	if err != nil {
 		log.Println("add accessable_pages error:" + err.Error() + " setPagesMutation:" + setPagesMutation)
+		return err
+	}
+	// fmt.Println("resp:", resp)
+	// 成功的话，resp.Json是没有东西的
+	_ = resp.Uids
+	return nil
+}
+
+/**
+example:
+upsert{
+    query{
+		find_nodes(func: uid(0x4e22)){
+			~roles{
+				linked_uid as uid
+			}
+		}
+	}
+
+	mutation{
+		delete{
+			uid(linked_uid) <roles> <0x4e22> .
+      		<0x4e22> * * .
+		}
+	}
+}
+*/
+func DeleteRole(role Role) error {
+	// 要删除role，删除后要用reverse找到所有与这个node关联的uid然后删除
+	var ctx = context.Background()
+	// 首先，找到所有与这个节点有关的uid
+	query := fmt.Sprintf(`
+	query {
+		find_linked(func: uid(%s)) {
+			~roles {
+				linked_nodes as uid
+			}
+		}
+	}
+	`, role.UID)
+
+	//然后，组装delete语句，先删edge后删node
+	deleteEdgeMutation := "uid(linked_nodes) <roles> <" + role.UID + "> .\n"
+	deleteNodeMutation := utils.CombineNQuad(role.UID, "", "", "deleteAll")
+	dmArray := []string{deleteEdgeMutation, deleteNodeMutation}
+
+	resp, err := MutationDeleteWithUpsert(ctx, dmArray, query)
+	if err != nil {
+		log.Printf("delete role error:"+err.Error()+" query:%+v\n", dmArray)
 		return err
 	}
 	// fmt.Println("resp:", resp)
