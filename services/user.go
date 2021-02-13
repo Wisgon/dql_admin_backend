@@ -65,11 +65,19 @@ func Login(c *gin.Context) {
 	} else {
 		result, err := user.VerifyPwd()
 		if err != nil {
-			log.Println("verifypwd error: " + err.Error())
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"message": err.Error(),
-				"code":    config.STATUS["InternalError"],
-			})
+			if err.Error() == "user not found!" {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"code":    config.STATUS["NotFound"],
+					"message": "用户名或密码错误",
+				})
+			} else {
+				log.Println("verifypwd error: " + err.Error())
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"code":    config.STATUS["InternalError"],
+					"message": "verify password error, see logs",
+				})
+			}
+			return
 		}
 		if !result {
 			c.JSON(http.StatusOK, gin.H{
@@ -139,17 +147,10 @@ func GetUserInfo(c *gin.Context) {
 	}
 	err := user.GetUserInfo("id")
 	if err != nil {
-		if err.Error() == "user not found!" {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"code":    config.STATUS["NotFound"],
-				"message": "user not found",
-			})
-		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"code":    config.STATUS["InternalError"],
-				"message": "get user info error, see logs",
-			})
-		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    config.STATUS["InternalError"],
+			"message": "get user info error, see logs",
+		})
 		return
 	}
 	permissions := []string{}
