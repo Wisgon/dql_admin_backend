@@ -42,6 +42,11 @@ func CreateRole(c *gin.Context) {
 }
 
 func GetRoles(c *gin.Context) {
+	isAdmin := JudgeAuthority(c, "admin")
+	if !isAdmin {
+		return
+	}
+
 	var pagination Pagination
 	if err := c.ShouldBind(&pagination); err != nil {
 		log.Println("get role list bind fail!!!" + err.Error())
@@ -51,10 +56,6 @@ func GetRoles(c *gin.Context) {
 		})
 		return
 	} else {
-		isAdmin := JudgeAuthority(c, "admin")
-		if !isAdmin {
-			return
-		}
 		// get list
 		roleList, err := model.GetRolesList(pagination.PageSize, pagination.PageNo)
 		if err != nil {
