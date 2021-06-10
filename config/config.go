@@ -23,8 +23,10 @@ var STATUS = map[string]int{
 // local_config里面必须包含下面这些变量设置：
 /*
 
-普通用户的角色id，创建用户时的默认选项
-var NormalRoleId = "0x4e25" // company
+
+var NormalRoleId = "0x4e25" // 普通用户的角色id，创建用户时的默认选项
+var SystemConfigNodeId = "0x2222"  //
+var NormalRoleId = "0x22221"
 
 根目录
 var Root = "/home/zhilong/Documents/my_projects/dql_admin_backend"

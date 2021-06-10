@@ -1,3 +1,4 @@
 bin/
 logs/
 config/local_config.go
+.vscode/
